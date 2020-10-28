@@ -1,3 +1,7 @@
+/*
+code from slack screeps group #automation channel
+change little for my own use
+*/
 let dt = {
     /**
      * 
