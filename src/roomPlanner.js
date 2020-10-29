@@ -1,7 +1,7 @@
 const extensionGNum = 6
 const extensionGroup = [[1,0],[-1,0],[0,1],[0,-1]]
 /*
-config存储配置，如建筑快构造，数目，建造等级
+config存储配置，建筑快构造，数目，建造等级
 */
 let roomConfig = {
     extensionGroup:{
@@ -12,8 +12,12 @@ let roomConfig = {
 
 }
 class roomPlan{
-    constructor(){
-
+    /**
+     * 
+     * @param {String} roomName 
+     */
+    constructor(roomName){
+        this.room = roomName
     }   
     getPlan(){
         
