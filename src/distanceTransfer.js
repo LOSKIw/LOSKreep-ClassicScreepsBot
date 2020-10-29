@@ -1,8 +1,18 @@
 /*
-code from slack screeps group #automation channel
-change little for my own use
+原代码来自#automation channel
+做了细微调整
 */
 let dt = {
+    /**
+     * 
+     * @param {String} roomName - 待处理房间
+     * @param {Array} builtList - 所有建筑位置，元素为含有两坐标数组的数组
+     * @returns {CostMatrix}
+     */
+    getDistanceTransfer:function(roomName,builtList){
+        return this.distanceTransform(this.walkablePixelsForRoom(roomName,builtList));
+    },
+
     /**
      * 
      * @param {Array} a 
