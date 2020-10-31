@@ -56,7 +56,7 @@ let dt = {
                     if (x ==  0) { A = oob; D = oob; }
                     if (x == 49) { C = oob; }
 
-                    dist.set(x, y, Math.min(A, B, C, D, 254) + 1);
+                    dist.set(x, y, Math.min(Math.min(B, C, 254) + 1,Math.min(A,C)+2));
                 }
             }
         }
@@ -69,7 +69,7 @@ let dt = {
                 if (x == 49) { F = oob; I = oob; }
                 if (x ==  0) { G = oob; }
 
-                value = Math.min(E, F + 1, G + 1, H + 1, I + 1);
+                value = Math.min(E, F + 1, G + 2, H + 1, I + 2);
                 dist.set(x, y, value);
             }
         }

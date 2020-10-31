@@ -148,7 +148,7 @@ class roomPlan{
         let rv = new RoomVisual(this.room)
         for(let temp in layout){
             for(let loc in layout[temp]){
-                rv.text(temp.substring(0,4),layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.3})
+                rv.text(temp.substring(0,4)+layout[temp][loc][2],layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.2})
             }
         }
     }
