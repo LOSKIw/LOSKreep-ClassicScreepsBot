@@ -1,3 +1,5 @@
+let DT = require('distanceTransfer')
+
 let buildingDict = {
     '0': '0',
     '1': STRUCTURE_STORAGE,
@@ -21,21 +23,21 @@ config存储配置，建筑块构造，数目，建造等级
     buidingType:对应groupLoc,建筑类型
     buidRcl:对应groupLoc，对应建造的rcl【ext无等级一说，内部为每个块对应的起建等级
 */
-
+let groupName = ['coreGroup','extensionGroup','towerGroup','labGroup']
 let roomConfig = {
-    extensionGroup:{
-        r:3,
-        num:10,
-        groupLoc:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],
-        buildingType:[2,2,2,2,2],
-        buildRcl:[2,2,3,3,4,4,5,5,6,6,7,7,8,8]
-    },
     coreGroup:{
         r:3,
         num:1,
         groupLoc:[[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]],
         buildingType:[5,1,7,5,10,9,5,6],
         buildRcl:[1,4,8,7,7,6,8,6]
+    },
+    extensionGroup:{
+        r:3,
+        num:10,
+        groupLoc:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],
+        buildingType:[2,2,2,2,2],
+        buildRcl:[2,2,3,3,4,4,5,5,6,6,7,7,8,8]
     },
     towerGroup:{
         r:3,
@@ -64,10 +66,13 @@ class roomPlan{
      * @param {String} roomName 
      */
     constructor(roomName){
-        this.room = roomName
+        this.room = roomName;
     }
     getPlan(){
-        let targetRoom = Game.rooms[this.room]
+        let targetRoom = Game.rooms[this.room];
+
+        let builtList = [];
+
         let layout = {
             spawn: [],
             extension: [],
@@ -84,31 +89,68 @@ class roomPlan{
             container: [],
             road: []
         };
-        let controller = targetRoom.controller
+        let controller = targetRoom.controller;
         let controllerCostMap = initArr(0)
         this.getCostArray(controllerCostMap, controller.pos.x, controller.pos.y, 3);
         
         let sourceCostMap = initArr(0);
-        let sources = targetRoom.find(FIND_SOURCES)
+        let sources = targetRoom.find(FIND_SOURCES);
+        let count = 0
         for (let source of sources) {
-            this.getCostArray(sourceCostMap, source.pos.x, source.pos.y, 3);
+            this.getCostArray(sourceCostMap, source.pos.x, source.pos.y, 2);
         }
-        
         let mineralCostMap = initArr(0);
         let mineralL = targetRoom.find(FIND_MINERALS);
         if(mineralL.length > 0){
             let mineral = mineralL[0];
             this.getCostArray(mineralCostMap, mineral.pos.x, mineral.pos.y, 2);
+            layout.extractor.push([mineral.pos.x,mineral.y,7]);
         }
         
 
         let tempMap = addArrays(sourceCostMap, multiplyArray(mineralCostMap, 0.25),
             controllerCostMap);
-
-        let min = findMin(tempMap)
-        return min
         
+        let center = findMin(tempMap);
+        new RoomPosition(center[0],center[1],this.room).createFlag(this.room);
+        let centerMap = initArr(0);
+        this.getCostArray(centerMap,center[0],center[1],1)
+        //块摆放
+        for(let i in groupName){
+            let tempCore = roomConfig[groupName[i]];
+            for(let j = 0; j < tempCore.num; j++){
+                let map = DT.getDistanceTransfer(this.room,builtList);
+                let locList = getRLoc(tempCore.r,map);
+                let node = getMinCostLocA(locList,centerMap)
+                if(node != null){
+                    putLayout(layout,builtList,node,groupName[i])
+                }
+                else{
+                    console.log('error')
+                    return
+                }
+            }
+        }
+        //DT.displayCostMatrix(DT.getDistanceTransfer(this.room,builtList))
+        return layout
+        
+    }
+    displayArray(array){
+        let rv = new RoomVisual(this.room)
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                rv.text(array[x][y],x,y)
+            }
+        }
 
+    }
+    disPlayLayout(layout){
+        let rv = new RoomVisual(this.room)
+        for(let temp in layout){
+            for(let loc in layout[temp]){
+                rv.text(temp.substring(0,4),layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.3})
+            }
+        }
     }
     getCostArray(array, x, y, infRange) {
         let room = this.room;
@@ -118,7 +160,7 @@ class roomPlan{
             for (let y = 0; y < 50; y++) {
                 let dx = Math.abs(x - initx);
                 let dy = Math.abs(y - inity);
-                if ((dx <= infRange && dy <= infRange) || arr[x][y] < 1) {
+                if ((dx+dy <= infRange) || arr[x][y] < 1) {
                     array[x][y] += Infinity;
                 } else {
                     array[x][y] += arr[x][y] - infRange;
@@ -135,11 +177,20 @@ class roomPlan{
             let pos = frontier.shift();
             let x = pos[0];
             let y = pos[1];
-            let neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
-                [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
+            // let neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
+            //     [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
+            let neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
+            let neighborsN = [[x - 1, y - 1], [x - 1, y + 1], [x + 1, y - 1], [x + 1, y + 1]];
             for (let p of neighbors) {
                 if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
                     arr[p[0]][p[1]] = arr[x][y] + 1;
+                    frontier.push(p);
+                    explored[p[0]][p[1]] = 1;
+                }
+            }
+            for (let p of neighborsN) {
+                if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                    arr[p[0]][p[1]] = arr[x][y] + 2;
                     frontier.push(p);
                     explored[p[0]][p[1]] = 1;
                 }
@@ -151,8 +202,83 @@ class roomPlan{
 }
 
 module.exports = roomPlan;
+/**
+ * 
+ * @param {Array} list 
+ * @param {Array} map 
+ */
+function getMinCostLocA(list,map){
+    let temp = 999999
+    let pos = undefined
+    for(let i in list){
+        let cost = map[list[i][0]][list[i][1]]
+        if(cost < temp){
+            pos = list[i]
+            temp = cost
+        }
+    }
+    if(temp < 255){
+        return pos
+    }
+    else{
+        return null
+    }
+}
 
+/**
+ * 
+ * @param {Array} list 
+ * @param {CostMatrix} map 
+ */
+function getMinCostLocCM(list,map){
+    let temp = 999999
+    let pos = undefined
+    for(let i in list){
+        let cost = map.get(list[i][0],list[i][1])
+        if(cost < temp){
+            pos = list[i]
+            temp = cost
+        }
+    }
+    if(temp < 9999){
+        return pos
+    }
+    else{
+        return null
+    }
+}
 
+/**
+ * 
+ * @param {number} r 
+ * @param {CostMatrix} map 
+ */
+function getRLoc(r,map){
+    let accLoc = []
+    for (var y = 0; y < 50; ++y) {
+        for (var x = 0; x < 50; ++x) {
+            if(map.get(x,y)>=r){
+                accLoc.push([x,y])
+            }
+        }
+    }
+    return accLoc
+}
+
+/**
+ * 
+ * @param {*} layout 
+ * @param {Array} builtList 
+ * @param {Array} pos 
+ * @param {String} groupName 
+ */
+function putLayout(layout,builtList,pos,groupName){
+    let plan = roomConfig[groupName]
+    for(let i in plan.groupLoc){
+        layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],plan.buildRcl[i]])
+        builtList.push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1]])
+    }
+}
 function initArr(content) {
     let arr = new Array(50);
     for (let i = 0; i < 50; i++) {
