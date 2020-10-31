@@ -1,5 +1,3 @@
-const extensionGNum = 6
-const extensionGroup = [[1,0],[-1,0],[0,1],[0,-1]]
 let buildingDict = {
     '0': '0',
     '1': STRUCTURE_STORAGE,
@@ -12,7 +10,8 @@ let buildingDict = {
     '8': STRUCTURE_NUKER,
     '9': STRUCTURE_TERMINAL,
     '10': STRUCTURE_FACTORY,
-    '11': STRUCTURE_CONTAINER
+    '11': STRUCTURE_CONTAINER,
+    '12': STRUCTURE_LAB
 }
 /*
 config存储配置，建筑块构造，数目，建造等级
@@ -23,29 +22,42 @@ config存储配置，建筑块构造，数目，建造等级
     buidRcl:对应groupLoc，对应建造的rcl【ext无等级一说，内部为每个块对应的起建等级
 */
 
-
-
 let roomConfig = {
     extensionGroup:{
+        r:3,
         num:10,
         groupLoc:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],
         buildingType:[2,2,2,2,2],
         buildRcl:[2,2,3,3,4,4,5,5,6,6,7,7,8,8]
     },
     coreGroup:{
+        r:3,
         num:1,
         groupLoc:[[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]],
         buildingType:[5,1,7,5,10,9,5,6],
         buildRcl:[1,4,8,7,7,6,8,6]
     },
     towerGroup:{
+        r:3,
         num:1,
         groupLoc:[[-1,1],[0,1],[1,0],[1,-1],[0,-1],[-1,0],[0,0]],
         buildingType:[4,4,4,4,4,4,11],
         buildRcl:[3,5,7,8,8,8,7]
+    },
+    labGroup:{
+        r:4,
+        num:1,
+        groupLoc:[[0,-1],[1,-1],[1,0],[2,0],[2,1],[1,2],[0,2],[0,1],[-1,1],[-1,0],[0,0]],
+        buildingType:[12,12,12,12,12,12,12,12,12,12,11],
+        buildRcl:[6,6,6,7,7,7,8,8,8,8]
     }
 
 }
+
+/*
+PS:大量方法及思路均借鉴自曲奇大佬
+【有些常用函数懒得写就直接抄曲奇大佬的了
+*/
 class roomPlan{
     /**
      * 
@@ -53,9 +65,9 @@ class roomPlan{
      */
     constructor(roomName){
         this.room = roomName
-    }   
+    }
     getPlan(){
-        
+        let targetRoom = Game.rooms[this.room]
         let layout = {
             spawn: [],
             extension: [],
@@ -72,10 +84,124 @@ class roomPlan{
             container: [],
             road: []
         };
-
+        let controller = targetRoom.controller
+        let controllerCostMap = initArr(0)
+        this.getCostArray(controllerCostMap, controller.pos.x, controller.pos.y, 3);
         
+        let sourceCostMap = initArr(0);
+        let sources = targetRoom.find(FIND_SOURCES)
+        for (let source of sources) {
+            this.getCostArray(sourceCostMap, source.pos.x, source.pos.y, 3);
+        }
+        
+        let mineralCostMap = initArr(0);
+        let mineralL = targetRoom.find(FIND_MINERALS);
+        if(mineralL.length > 0){
+            let mineral = mineralL[0];
+            this.getCostArray(mineralCostMap, mineral.pos.x, mineral.pos.y, 2);
+        }
+        
+
+        let tempMap = addArrays(sourceCostMap, multiplyArray(mineralCostMap, 0.25),
+            controllerCostMap);
+
+        let min = findMin(tempMap)
+        return min
+        
+
     }
+    getCostArray(array, x, y, infRange) {
+        let room = this.room;
+        let initx = x, inity = y;
+        let arr = this.bfs(x, y);
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                let dx = Math.abs(x - initx);
+                let dy = Math.abs(y - inity);
+                if ((dx <= infRange && dy <= infRange) || arr[x][y] < 1) {
+                    array[x][y] += Infinity;
+                } else {
+                    array[x][y] += arr[x][y] - infRange;
+                }
+            }
+        }
+    }
+    bfs(initx, inity) {
+        let terrain = new Room.Terrain(this.room);
+        let arr = initArr(0);
+        let frontier = [[initx, inity]];
+        let explored = initArr(false);
+        while (frontier.length > 0) {
+            let pos = frontier.shift();
+            let x = pos[0];
+            let y = pos[1];
+            let neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
+                [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
+            for (let p of neighbors) {
+                if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                    arr[p[0]][p[1]] = arr[x][y] + 1;
+                    frontier.push(p);
+                    explored[p[0]][p[1]] = 1;
+                }
+            }
+        }
+        return arr;
+    }
+    
 }
 
+module.exports = roomPlan;
 
 
+function initArr(content) {
+    let arr = new Array(50);
+    for (let i = 0; i < 50; i++) {
+        arr[i] = new Array(50).fill(content);
+    }
+    return arr;
+}
+
+function isOnWallOrEdge(x, y, rt) {
+    if (x <= 0 || x >= 49 || y <= 0 || y >= 49) {
+        return true;
+    }
+    return rt.get(x, y) === TERRAIN_MASK_WALL;
+}
+
+function addArrays(...arrays) {
+    let result = initArr(0);
+    for (let array of arrays) {
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                result[x][y] += array[x][y];
+            }
+        }
+    }
+    return result;
+}
+
+function multiplyArray(array, constant) {
+    let result = initArr(0);
+    for (let x = 0; x < 50; x++) {
+        for (let y = 0; y < 50; y++) {
+            result[x][y] += array[x][y] * constant;
+        }
+    }
+    return result;
+}
+
+function findMin(matrix) {
+    let minValue = Infinity;
+    let minX = -1;
+    let minY = -1;
+    for (let x = 0; x < 50; x++) {
+        for (let y = 0; y < 50; y++) {
+            if (matrix[x][y] < minValue) {
+                minX = x;
+                minY = y;
+                minValue = matrix[x][y];
+            }
+        }
+    }
+    return [minX, minY];
+}
