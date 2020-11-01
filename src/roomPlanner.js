@@ -51,7 +51,7 @@ let roomConfig = {
         num:1,
         groupLoc:[[0,-1],[1,-1],[1,0],[2,0],[2,1],[1,2],[0,2],[0,1],[-1,1],[-1,0],[0,0]],
         buildingType:[12,12,12,12,12,12,12,12,12,12,11],
-        buildRcl:[6,6,6,7,7,7,8,8,8,8]
+        buildRcl:[6,6,6,7,7,7,8,8,8,8,8]
     }
 
 }
@@ -95,7 +95,6 @@ class roomPlan{
         
         let sourceCostMap = initArr(0);
         let sources = targetRoom.find(FIND_SOURCES);
-        let count = 0
         for (let source of sources) {
             this.getCostArray(sourceCostMap, source.pos.x, source.pos.y, 2);
         }
@@ -119,6 +118,7 @@ class roomPlan{
         for(let i in groupName){
             let tempCore = roomConfig[groupName[i]];
             for(let j = 0; j < tempCore.num; j++){
+                
                 let map = DT.getDistanceTransfer(this.room,builtList);
                 let locList = getRLoc(tempCore.r,map);
                 let node = getMinCostLocA(locList,centerMap)
@@ -131,9 +131,44 @@ class roomPlan{
                 }
             }
         }
+        console.log(this.getBoundBox(builtList,true))
         //DT.displayCostMatrix(DT.getDistanceTransfer(this.room,builtList))
         return layout
         
+    }
+    getBoundBox(builtList,show=false){
+        let rv = new RoomVisual(this.room)
+        let xmin=50,xmax=0
+        let ymin=50,ymax=0
+        for(let node of builtList){
+            if(node[0]<xmin){
+                xmin = node[0]
+            }
+            else if(node[0]>xmax){
+                xmax = node[0]
+            }
+            if(node[1]<ymin){
+                ymin = node[1]
+            }
+            else if(node[1]>ymax){
+                ymax = node[1]
+            }
+        }
+        xmax+=3
+        xmin-=3
+        ymax+=3
+        ymin-=3
+        if(show = true){
+            for(let x = xmin;x<=xmax;x++){
+                rv.rect(x-0.5,ymax-0.5,1,1,{fill: '#EEEE00'})
+                rv.rect(x-0.5,ymin-0.5,1,1,{fill: '#EEEE00'})
+            }
+            for(let y = ymin;y<=ymax;y++){
+                rv.rect(xmin-0.5,y-0.5,1,1,{fill: '#EEEE00'})
+                rv.rect(xmax-0.5,y-0.5,1,1,{fill: '#EEEE00'})
+            }
+        }
+        return [xmin,xmax,ymin,xmax]
     }
     displayArray(array){
         let rv = new RoomVisual(this.room)
@@ -148,7 +183,7 @@ class roomPlan{
         let rv = new RoomVisual(this.room)
         for(let temp in layout){
             for(let loc in layout[temp]){
-                rv.text(temp.substring(0,4)+layout[temp][loc][2],layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.2})
+                rv.text(temp.substring(0,2)+layout[temp][loc][2],layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.5})
             }
         }
     }
@@ -202,6 +237,8 @@ class roomPlan{
 }
 
 module.exports = roomPlan;
+
+
 /**
  * 
  * @param {Array} list 
@@ -275,7 +312,12 @@ function getRLoc(r,map){
 function putLayout(layout,builtList,pos,groupName){
     let plan = roomConfig[groupName]
     for(let i in plan.groupLoc){
-        layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],plan.buildRcl[i]])
+        if(groupName == 'extensionGroup'){
+            layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],Math.floor(Math.floor((layout['extension'].length)/5)/2)+2])
+        }
+        else{
+            layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],plan.buildRcl[i]])
+        }
         builtList.push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1]])
     }
 }
