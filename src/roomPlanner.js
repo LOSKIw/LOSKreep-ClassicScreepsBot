@@ -16,6 +16,11 @@ let buildingDict = {
     '12': STRUCTURE_LAB,
     '13':STRUCTURE_RAMPART
 }
+
+let colorDic = {
+    'road':'#ffffff',
+    'rampart':'#00ff00'
+}
 /*
 config存储配置，建筑块构造，数目，建造等级
 每个建筑块:
@@ -71,7 +76,7 @@ class roomPlan{
     }
     getPlan(){
         let targetRoom = Game.rooms[this.room];
-
+        let coreLoc
         let builtList = [];
 
         let layout = {
@@ -114,6 +119,7 @@ class roomPlan{
             controllerCostMap);
         
         let center = findMin(tempMap);
+        
         //new RoomPosition(center[0],center[1],this.room).createFlag(this.room);
         let centerMap = initArr(0);
         this.getCostArray(centerMap,center[0],center[1],1)
@@ -125,6 +131,9 @@ class roomPlan{
                 let map = DT.getDistanceTransfer(this.room,builtList,1);
                 let locList = getRLoc(tempCore.r,map);
                 let node = getMinCostLocA(locList,centerMap)
+                if(groupName[i] == 'coreGroup'){
+                    builtList.push(node)
+                }
                 if(node != null){
                     putLayout(layout,builtList,node,groupName[i])
                 }
@@ -172,13 +181,45 @@ class roomPlan{
         for(let node of start){
             RamList = this.floodfillRam(node,RamList)
         }
-        this.displayRam(RamList)
+        //最终rampart
+        layout['rampart'] = RamList
+
+        layout['road'] = this.fillBuildingRoad(builtList)
+
+        builtList.push(layout['road'])
+
+        let centerN = new RoomPosition(center[0],center[1],this.room)
+        for(let source of sources){
+            let path = centerN.findPathTo(source)
+            for(let step of path){
+                let loc = [step.x,step.y]
+                if(!isOnWallOrEdge(...loc, terrain) && !isContained(builtList,loc)){
+                    layout['road'].push(loc)
+                    builtList.push(loc)
+                }
+            }
+        }
         return layout
     }
-    displayRam(finalRam){
+    fillBuildingRoad(buildingList){
+        let terrain = new Room.Terrain(this.room);
+        let roadList = []
+        for(let node of buildingList){
+            let x = node[0]
+            let y = node[1]
+            let neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
+            for(let ro of neighbors){
+                if(!isOnWallOrEdge(...ro, terrain) && !isContained(buildingList,ro) && !isContained(roadList,ro)){
+                    roadList.push(ro)
+                }
+            }
+        }
+        return roadList
+    }
+    displayOther(final,type){
         let rv = new RoomVisual(this.room)
-        for(let node of finalRam){
-            rv.circle(node[0],node[1],{radius:0.3,fill:'#00FF00'})
+        for(let node of final){
+            rv.circle(node[0],node[1],{radius:0.3,fill:colorDic[type]})
         }
     }
     floodfillRam(start,ramList){
@@ -252,8 +293,13 @@ class roomPlan{
     disPlayLayout(layout){
         let rv = new RoomVisual(this.room)
         for(let temp in layout){
-            for(let loc in layout[temp]){
-                rv.text(temp.substring(0,2)+layout[temp][loc][2],layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.5})
+            if(temp!='road' && temp!='rampart'){
+                for(let loc in layout[temp]){
+                    rv.text(temp.substring(0,2)+layout[temp][loc][2],layout[temp][loc][0],layout[temp][loc][1],{color: 'white', font: 0.5})
+                }
+            }
+            else{
+                this.displayOther(layout[temp],temp)
             }
         }
     }
@@ -319,7 +365,6 @@ class roomPlan{
 }
 
 module.exports = roomPlan;
-
 
 /**
  * 
