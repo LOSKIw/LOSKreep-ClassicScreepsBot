@@ -38,7 +38,7 @@ let dt = {
         it to a high value (e.g., 255) for this. Set oob to 0 to treat out of bounds
         as background pixels.
     */
-    distanceTransform:function(foregroundPixels, oob = 255) {
+    distanceTransform:function(foregroundPixels, surround = 1, oob = 255) {
         var dist = foregroundPixels; // not a copy. We're modifying the input
 
         // Variables to represent the 3x3 neighborhood of a pixel.
@@ -55,8 +55,13 @@ let dt = {
                     if (y ==  0) { A = oob; B = oob; C = oob; }
                     if (x ==  0) { A = oob; D = oob; }
                     if (x == 49) { C = oob; }
-
-                    dist.set(x, y, Math.min(Math.min(B, C, 254) + 1,Math.min(A,C)+2));
+                    if(surround == 1){
+                        dist.set(x, y, Math.min(Math.min(B, D, 254) + 1,Math.min(A,C,253)+2));
+                    }
+                    else if(surround == 2){
+                        dist.set(x, y, Math.min(B, D, A, C, 254) + 1);
+                    }
+                    
                 }
             }
         }
@@ -68,8 +73,13 @@ let dt = {
                 if (y == 49) { G = oob; H = oob; I = oob; }
                 if (x == 49) { F = oob; I = oob; }
                 if (x ==  0) { G = oob; }
-
-                value = Math.min(E, F + 1, G + 2, H + 1, I + 2);
+                if(surround == 1){
+                    value = Math.min(E, F + 1, G + 2, H + 1, I + 2);
+                }
+                else if(surroud == 2){
+                    value = Math.min(E, F + 1, G + 1, H + 1, I + 1);
+                }
+                
                 dist.set(x, y, value);
             }
         }

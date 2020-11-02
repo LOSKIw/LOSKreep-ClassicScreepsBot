@@ -40,7 +40,7 @@ let roomConfig = {
         buildRcl:[2,2,3,3,4,4,5,5,6,6,7,7,8,8]
     },
     towerGroup:{
-        r:3,
+        r:4,
         num:1,
         groupLoc:[[-1,1],[0,1],[1,0],[1,-1],[0,-1],[-1,0],[0,0]],
         buildingType:[4,4,4,4,4,4,11],
@@ -119,7 +119,7 @@ class roomPlan{
             let tempCore = roomConfig[groupName[i]];
             for(let j = 0; j < tempCore.num; j++){
                 
-                let map = DT.getDistanceTransfer(this.room,builtList);
+                let map = DT.getDistanceTransfer(this.room,builtList,1);
                 let locList = getRLoc(tempCore.r,map);
                 let node = getMinCostLocA(locList,centerMap)
                 if(node != null){
