@@ -184,42 +184,65 @@ class roomPlan{
         //最终rampart
         layout['rampart'] = RamList
 
-        layout['road'] = this.fillBuildingRoad(builtList)
+        layout['road'] = this.fillBuildingRoad(builtList,layout)
 
         builtList.push(layout['road'])
-
+        CisContained(builtList,[28,22])
+        CisContained(builtList,[25,24])
         let centerN = new RoomPosition(center[0],center[1],this.room)
         for(let source of sources){
             let path = centerN.findPathTo(source)
             for(let step of path){
+                
                 let loc = [step.x,step.y]
+                if(step.x == 28 && step.y == 22){
+                    console.log(isContained(builtList,loc))
+                }
                 if(!isOnWallOrEdge(...loc, terrain) && !isContained(builtList,loc)){
                     layout['road'].push(loc)
                     builtList.push(loc)
                 }
             }
         }
+        console.log(132323)
+        CisContained(builtList,[28,22])
+        CisContained(builtList,[25,24])
         return layout
     }
-    fillBuildingRoad(buildingList){
+    fillBuildingRoad(buildingList,layout){
         let terrain = new Room.Terrain(this.room);
         let roadList = []
-        for(let node of buildingList){
-            let x = node[0]
-            let y = node[1]
-            let neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
-            for(let ro of neighbors){
-                if(!isOnWallOrEdge(...ro, terrain) && !isContained(buildingList,ro) && !isContained(roadList,ro)){
-                    roadList.push(ro)
+        for(let type in layout){
+            if(type == 'tower' || type == 'lab' || type == 'road' || type == 'rampart'){
+                continue
+            }
+            for(let node of layout[type]){
+                let x = node[0]
+                let y = node[1]
+                let neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
+                for(let ro of neighbors){
+                    if(!isOnWallOrEdge(...ro, terrain) && !isContained(buildingList,ro) && !isContained(roadList,ro)){
+                        roadList.push(ro)
+                    }
                 }
             }
         }
+        // for(let node of buildingList){
+        //     let x = node[0]
+        //     let y = node[1]
+        //     let neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
+        //     for(let ro of neighbors){
+        //         if(!isOnWallOrEdge(...ro, terrain) && !isContained(buildingList,ro) && !isContained(roadList,ro)){
+        //             roadList.push(ro)
+        //         }
+        //     }
+        // }
         return roadList
     }
     displayOther(final,type){
         let rv = new RoomVisual(this.room)
         for(let node of final){
-            rv.circle(node[0],node[1],{radius:0.3,fill:colorDic[type]})
+            rv.circle(node[0],node[1],{radius:0.2,fill:colorDic[type]})
         }
     }
     floodfillRam(start,ramList){
@@ -512,5 +535,17 @@ function isContained(a, b){
         let tempStr = a[i].toString();
         if(tempStr == bstr){return true}
     }
+    return false;
+}
+
+function CisContained(a, b){
+    let bstr = b.toString()
+    let count = 0
+    for(let i = 0; i< a.length; i+=1){
+        if(a[i].length<b.length){continue}
+        let tempStr = a[i].toString();
+        if(tempStr == bstr){count += 1}
+    }
+    console.log(count)
     return false;
 }

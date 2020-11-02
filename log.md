@@ -21,3 +21,12 @@
 <img src="doc/img/20201101.jpg" align="middle" width = 300/>
 
 领地bbox已可生成，修复ext的rcl显示bug
+
+## 2020-11-02
+
+<table>
+    <tr>
+        <th><img src="doc/img/20201102-1.png" align="middle" height = 200/></th>
+        <th><img src="doc/img/20201102-2.png"   align="middle" height = 200/></th>
+    </tr>
+</table>
