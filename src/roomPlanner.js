@@ -132,7 +132,7 @@ class roomPlan{
             }
         }
         console.log(this.getBoundBox(builtList,true))
-        //DT.displayCostMatrix(DT.getDistanceTransfer(this.room,builtList))
+        DT.displayCostMatrix(DT.getDistanceTransfer(this.room,builtList,2))
         return layout
         
     }
@@ -187,10 +187,10 @@ class roomPlan{
             }
         }
     }
-    getCostArray(array, x, y, infRange) {
+    getCostArray(array, x, y, infRange,type = 1) {
         let room = this.room;
         let initx = x, inity = y;
-        let arr = this.bfs(x, y);
+        let arr = this.bfs(x, y, type);
         for (let x = 0; x < 50; x++) {
             for (let y = 0; y < 50; y++) {
                 let dx = Math.abs(x - initx);
@@ -203,7 +203,7 @@ class roomPlan{
             }
         }
     }
-    bfs(initx, inity) {
+    bfs(initx, inity, type) {
         let terrain = new Room.Terrain(this.room);
         let arr = initArr(0);
         let frontier = [[initx, inity]];
@@ -212,22 +212,34 @@ class roomPlan{
             let pos = frontier.shift();
             let x = pos[0];
             let y = pos[1];
-            // let neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
-            //     [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
-            let neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
-            let neighborsN = [[x - 1, y - 1], [x - 1, y + 1], [x + 1, y - 1], [x + 1, y + 1]];
-            for (let p of neighbors) {
-                if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
-                    arr[p[0]][p[1]] = arr[x][y] + 1;
-                    frontier.push(p);
-                    explored[p[0]][p[1]] = 1;
+            let neighbors;
+            if(type == 1){
+                neighbors = [[x - 1, y],[x, y - 1], [x, y + 1], [x + 1, y]];
+                let neighborsN = [[x - 1, y - 1], [x - 1, y + 1], [x + 1, y - 1], [x + 1, y + 1]];
+                for (let p of neighbors) {
+                    if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                        arr[p[0]][p[1]] = arr[x][y] + 1;
+                        frontier.push(p);
+                        explored[p[0]][p[1]] = 1;
+                    }
+                }
+                for (let p of neighborsN) {
+                    if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                        arr[p[0]][p[1]] = arr[x][y] + 2;
+                        frontier.push(p);
+                        explored[p[0]][p[1]] = 1;
+                    }
                 }
             }
-            for (let p of neighborsN) {
-                if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
-                    arr[p[0]][p[1]] = arr[x][y] + 2;
-                    frontier.push(p);
-                    explored[p[0]][p[1]] = 1;
+            else if(type = 2){
+                neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
+                [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
+                for (let p of neighbors) {
+                    if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                        arr[p[0]][p[1]] = arr[x][y] + 1;
+                        frontier.push(p);
+                        explored[p[0]][p[1]] = 1;
+                    }
                 }
             }
         }

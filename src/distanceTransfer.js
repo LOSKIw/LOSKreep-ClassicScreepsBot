@@ -9,8 +9,8 @@ let dt = {
      * @param {Array} builtList - 所有建筑位置，元素为含有两坐标数组的数组
      * @returns {CostMatrix}
      */
-    getDistanceTransfer:function(roomName,builtList){
-        return this.distanceTransform(this.walkablePixelsForRoom(roomName,builtList));
+    getDistanceTransfer:function(roomName,builtList,transformType = 1){
+        return this.distanceTransform(this.walkablePixelsForRoom(roomName,builtList),transformType);
     },
 
     /**
@@ -76,7 +76,7 @@ let dt = {
                 if(surround == 1){
                     value = Math.min(E, F + 1, G + 2, H + 1, I + 2);
                 }
-                else if(surroud == 2){
+                else if(surround == 2){
                     value = Math.min(E, F + 1, G + 1, H + 1, I + 1);
                 }
                 
