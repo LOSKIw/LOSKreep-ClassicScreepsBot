@@ -13,7 +13,8 @@ let buildingDict = {
     '9': STRUCTURE_TERMINAL,
     '10': STRUCTURE_FACTORY,
     '11': STRUCTURE_CONTAINER,
-    '12': STRUCTURE_LAB
+    '12': STRUCTURE_LAB,
+    '13':STRUCTURE_RAMPART
 }
 /*
 config存储配置，建筑块构造，数目，建造等级
@@ -34,10 +35,10 @@ let roomConfig = {
     },
     extensionGroup:{
         r:3,
-        num:10,
+        num:12,
         groupLoc:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],
         buildingType:[2,2,2,2,2],
-        buildRcl:[2,2,3,3,4,4,5,5,6,6,7,7,8,8]
+        buildRcl:[2,3,4,4,5,5,6,6,7,7,8,8]
     },
     towerGroup:{
         r:4,
@@ -47,7 +48,7 @@ let roomConfig = {
         buildRcl:[3,5,7,8,8,8,7]
     },
     labGroup:{
-        r:4,
+        r:5,
         num:1,
         groupLoc:[[0,-1],[1,-1],[1,0],[2,0],[2,1],[1,2],[0,2],[0,1],[-1,1],[-1,0],[0,0]],
         buildingType:[12,12,12,12,12,12,12,12,12,12,11],
@@ -87,8 +88,10 @@ class roomPlan{
             storage: [],
             terminal: [],
             container: [],
-            road: []
+            road: [],
+            rampart:[]
         };
+        
         let controller = targetRoom.controller;
         let controllerCostMap = initArr(0)
         this.getCostArray(controllerCostMap, controller.pos.x, controller.pos.y, 3);
@@ -111,7 +114,7 @@ class roomPlan{
             controllerCostMap);
         
         let center = findMin(tempMap);
-        new RoomPosition(center[0],center[1],this.room).createFlag(this.room);
+        //new RoomPosition(center[0],center[1],this.room).createFlag(this.room);
         let centerMap = initArr(0);
         this.getCostArray(centerMap,center[0],center[1],1)
         //块摆放
@@ -131,10 +134,77 @@ class roomPlan{
                 }
             }
         }
-        console.log(this.getBoundBox(builtList,true))
-        DT.displayCostMatrix(DT.getDistanceTransfer(this.room,builtList,2))
-        return layout
+        let boxNode = this.getBoundBox(builtList,true)
         
+        let ramList = getRLoc(3,DT.getDistanceTransfer(this.room,builtList,2))
+
+        for(let x = boxNode[0];x<=boxNode[1];x++){
+            ramList.push([x,boxNode[3]])
+            ramList.push([x,boxNode[2]])
+        }
+        for(let y = boxNode[2];y<=boxNode[3];y++){
+            ramList.push([boxNode[0],y])
+            ramList.push([boxNode[1],y])
+        }
+        //从内部排除多余点
+        
+        let RamList = this.floodfillRam(center,ramList)
+        
+        //获取出口点列表
+        let start = []
+        let terrain = new Room.Terrain(this.room);
+        for(let x = 0;x<50;x++){
+            if(terrain.get(x,0)!= TERRAIN_MASK_WALL){
+                start.push([x,0])
+            }
+            if(terrain.get(x,49)!= TERRAIN_MASK_WALL){
+                start.push([x,49])
+            }
+        }
+        for(let y = 0;y<50;y++){
+            if(terrain.get(0,y)!= TERRAIN_MASK_WALL){
+                start.push([0,y])
+            }
+            if(terrain.get(49,y)!= TERRAIN_MASK_WALL){
+                start.push([49,y])
+            }
+        }
+        for(let node of start){
+            RamList = this.floodfillRam(node,RamList)
+        }
+        this.displayRam(RamList)
+        return layout
+    }
+    displayRam(finalRam){
+        let rv = new RoomVisual(this.room)
+        for(let node of finalRam){
+            rv.circle(node[0],node[1],{radius:0.3,fill:'#00FF00'})
+        }
+    }
+    floodfillRam(start,ramList){
+        let terrain = new Room.Terrain(this.room);
+        let finalRam = []
+        let frontier = [start];
+        let explored = initArr(false);
+        while (frontier.length > 0) {
+            let pos = frontier.shift();
+            let x = pos[0];
+            let y = pos[1];
+            let neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
+                [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
+            for (let p of neighbors) {
+                if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                    explored[p[0]][p[1]] = 1;
+                    if(isContained(ramList,p)){
+                        finalRam.push(p)
+                    }
+                    else{
+                        frontier.push(p);
+                    }
+                }
+            }
+        }
+        return finalRam
     }
     getBoundBox(builtList,show=false){
         let rv = new RoomVisual(this.room)
@@ -168,7 +238,7 @@ class roomPlan{
                 rv.rect(xmax-0.5,y-0.5,1,1,{fill: '#EEEE00'})
             }
         }
-        return [xmin,xmax,ymin,xmax]
+        return [xmin,xmax,ymin,ymax]
     }
     displayArray(array){
         let rv = new RoomVisual(this.room)
@@ -325,7 +395,7 @@ function putLayout(layout,builtList,pos,groupName){
     let plan = roomConfig[groupName]
     for(let i in plan.groupLoc){
         if(groupName == 'extensionGroup'){
-            layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],Math.floor(Math.floor((layout['extension'].length)/5)/2)+2])
+            layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],roomConfig['extensionGroup']['buildRcl'][Math.floor((layout['extension'].length)/5)]])
         }
         else{
             layout[buildingDict[plan.buildingType[i]]].push([pos[0]+plan.groupLoc[i][0],pos[1]+plan.groupLoc[i][1],plan.buildRcl[i]])
@@ -384,4 +454,18 @@ function findMin(matrix) {
         }
     }
     return [minX, minY];
+}
+/**
+ * 
+ * @param {Array} a
+ * @param {Array} b 
+ */
+function isContained(a, b){
+    let bstr = b.toString()
+    for(let i = 0; i< a.length; i+=1){
+        if(a[i].length<b.length){continue}
+        let tempStr = a[i].toString();
+        if(tempStr == bstr){return true}
+    }
+    return false;
 }
