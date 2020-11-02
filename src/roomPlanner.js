@@ -14,7 +14,8 @@ let buildingDict = {
     '10': STRUCTURE_FACTORY,
     '11': STRUCTURE_CONTAINER,
     '12': STRUCTURE_LAB,
-    '13':STRUCTURE_RAMPART
+    '13':STRUCTURE_RAMPART,
+    '14':STRUCTURE_OBSERVER
 }
 
 let colorDic = {
@@ -29,7 +30,7 @@ config存储配置，建筑块构造，数目，建造等级
     buidingType:对应groupLoc,建筑类型
     buidRcl:对应groupLoc，对应建造的rcl【ext无等级一说，内部为每个块对应的起建等级
 */
-let groupName = ['coreGroup','extensionGroup','towerGroup','labGroup']
+let groupName = ['coreGroup','extensionGroup','towerGroup','labGroup','nukerGroup','observerGroup']
 let roomConfig = {
     coreGroup:{
         r:3,
@@ -58,8 +59,21 @@ let roomConfig = {
         groupLoc:[[0,-1],[1,-1],[1,0],[2,0],[2,1],[1,2],[0,2],[0,1],[-1,1],[-1,0],[0,0]],
         buildingType:[12,12,12,12,12,12,12,12,12,12,11],
         buildRcl:[6,6,6,7,7,7,8,8,8,8,8]
+    },
+    nukerGroup:{
+        r:2,
+        num:1,
+        groupLoc:[[0,0]],
+        buildingType:[8],
+        buildRcl:[8]
+    },
+    observerGroup:{
+        r:2,
+        num:1,
+        groupLoc:[[0,0]],
+        buildingType:[14],
+        buildRcl:[8]
     }
-
 }
 
 /*
@@ -145,8 +159,7 @@ class roomPlan{
         }
         let boxNode = this.getBoundBox(builtList,true)
         
-        let ramList = getRLoc(3,DT.getDistanceTransfer(this.room,builtList,2))
-
+        let ramList = getRLoc(3,DT.getDistanceTransfer(this.room,builtList,3))
         for(let x = boxNode[0];x<=boxNode[1];x++){
             ramList.push([x,boxNode[3]])
             ramList.push([x,boxNode[2]])
@@ -187,33 +200,26 @@ class roomPlan{
         layout['road'] = this.fillBuildingRoad(builtList,layout)
 
         builtList.push(layout['road'])
-        CisContained(builtList,[28,22])
-        CisContained(builtList,[25,24])
         let centerN = new RoomPosition(center[0],center[1],this.room)
         for(let source of sources){
             let path = centerN.findPathTo(source)
             for(let step of path){
                 
                 let loc = [step.x,step.y]
-                if(step.x == 28 && step.y == 22){
-                    console.log(isContained(builtList,loc))
-                }
-                if(!isOnWallOrEdge(...loc, terrain) && !isContained(builtList,loc)){
+
+                if(!isOnWallOrEdge(...loc, terrain) && !isContained(builtList,loc) && !isContained(layout['road'],loc)){
                     layout['road'].push(loc)
                     builtList.push(loc)
                 }
             }
         }
-        console.log(132323)
-        CisContained(builtList,[28,22])
-        CisContained(builtList,[25,24])
         return layout
     }
     fillBuildingRoad(buildingList,layout){
         let terrain = new Room.Terrain(this.room);
         let roadList = []
         for(let type in layout){
-            if(type == 'tower' || type == 'lab' || type == 'road' || type == 'rampart'){
+            if(type == 'tower' || type == 'lab' || type == 'road' || type == 'rampart' || type == 'nuker' || type == 'oboserver' || type == 'container'){
                 continue
             }
             for(let node of layout[type]){
@@ -371,6 +377,17 @@ class roomPlan{
                 }
             }
             else if(type = 2){
+                neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
+                [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
+                for (let p of neighbors) {
+                    if (!isOnWallOrEdge(...p, terrain) && !explored[p[0]][p[1]]) {
+                        arr[p[0]][p[1]] = arr[x][y] + 1;
+                        frontier.push(p);
+                        explored[p[0]][p[1]] = 1;
+                    }
+                }
+            }
+            else if(type = 3){
                 neighbors = [[x - 1, y - 1], [x - 1, y], [x - 1, y + 1],
                 [x, y - 1], [x, y + 1], [x + 1, y - 1], [x + 1, y], [x + 1, y + 1]];
                 for (let p of neighbors) {
@@ -546,6 +563,6 @@ function CisContained(a, b){
         let tempStr = a[i].toString();
         if(tempStr == bstr){count += 1}
     }
-    console.log(count)
-    return false;
+    console.log('inside',count)
+    return count;
 }

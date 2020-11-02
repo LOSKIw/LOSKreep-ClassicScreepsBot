@@ -26,7 +26,11 @@
 
 <table>
     <tr>
-        <th><img src="doc/img/20201102-1.png" align="middle" height = 200/></th>
-        <th><img src="doc/img/20201102-2.png"   align="middle" height = 200/></th>
+        <th><img src="doc/img/20201102-1.png"   align="middle"/></th>
+        <th><img src="doc/img/20201102-2.png"   align="middle"/></th>
+        <th><img src="doc/img/20201102-3.png"   align="middle"/></th>
+        <th><img src="doc/img/20201102-4.png"   align="middle"/></th>
     </tr>
 </table>
+
+啊啊，大概是完全体了...?

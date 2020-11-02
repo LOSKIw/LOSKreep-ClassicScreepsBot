@@ -10,7 +10,14 @@ let dt = {
      * @returns {CostMatrix}
      */
     getDistanceTransfer:function(roomName,builtList,transformType = 1){
-        return this.distanceTransform(this.walkablePixelsForRoom(roomName,builtList),transformType);
+        let result
+        if(transformType == 3){
+            result = this.distanceTransform(this.buildingMap(builtList),transformType);
+        }
+        else{
+            result = this.distanceTransform(this.walkablePixelsForRoom(roomName,builtList),transformType);
+        }
+        return result
     },
 
     /**
@@ -58,7 +65,7 @@ let dt = {
                     if(surround == 1){
                         dist.set(x, y, Math.min(Math.min(B, D, 254) + 1,Math.min(A,C,253)+2));
                     }
-                    else if(surround == 2){
+                    else if(surround == 2 || surround == 3){
                         dist.set(x, y, Math.min(B, D, A, C, 254) + 1);
                     }
                     
@@ -76,7 +83,7 @@ let dt = {
                 if(surround == 1){
                     value = Math.min(E, F + 1, G + 2, H + 1, I + 2);
                 }
-                else if(surround == 2){
+                else if(surround == 2 || surround == 3){
                     value = Math.min(E, F + 1, G + 1, H + 1, I + 1);
                 }
                 
@@ -103,7 +110,17 @@ let dt = {
         }
         return costMatrix;
     },
-
+    buildingMap:function(builtList){
+        var costMatrix = new PathFinder.CostMatrix();
+        for (var y = 0; y < 50; ++y) {
+            for (var x = 0; x < 50; ++x) {
+                if (!this.isContained(builtList,[x,y])) {
+                    costMatrix.set(x, y, 1);
+                }
+            }
+        }
+        return costMatrix;
+    },
     wallOrAdjacentToExit:function(x, y, roomName) {
         let rt = Game.map.getRoomTerrain(roomName);
         if (1 < x && x < 48 && 1 < y && y < 48) return rt.get(x, y) == 1;
